@@ -15,15 +15,7 @@ import (
 func main() {
 	logger := log.New(os.Stdout, "", 0)
 
-	var (
-		to         string
-		from       string
-		subject    string
-		body       string
-		number     string
-		fromNumber string
-	)
-
+	var to, from, subject, body, number, fromNumber string
 	var coreClient *core.Client
 
 	var rootCmd = &cobra.Command{
