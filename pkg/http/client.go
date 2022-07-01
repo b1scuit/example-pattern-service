@@ -15,12 +15,15 @@ import (
 	"github.com/gorilla/mux"
 )
 
+type LoggerInterface interface {
+	Println(...any)
+}
 type CoreClientInterface interface {
 	Task1(context.Context, *core.Task1Input) error
 }
 
 type ClientOptions struct {
-	StdLog *log.Logger
+	StdLog LoggerInterface
 
 	HttpServer *http.Server
 
@@ -28,7 +31,7 @@ type ClientOptions struct {
 }
 
 type Client struct {
-	stdLog *log.Logger
+	stdLog LoggerInterface
 
 	httpServer *http.Server
 
@@ -99,11 +102,15 @@ func (c *Client) RunServer() error {
 	return c.httpServer.Shutdown(ctx)
 }
 
+func (c *Client) ExposeHttpServer() *http.Server {
+	return c.httpServer
+}
+
 func (c *Client) Task1Handler(w http.ResponseWriter, r *http.Request) {
 
 	// Decode user input
 	var input core.Task1Input
-	if err := json.NewDecoder(r.Body).Decode(input); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(w, err.Error())
 		return
