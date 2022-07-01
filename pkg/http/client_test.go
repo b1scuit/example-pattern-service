@@ -16,6 +16,11 @@ import (
 
 var errMock = errors.New("mock error")
 
+// Holding the error on the mock logger
+// lets me pull it back out again as the HTTP server
+// is run in a go routine and the only feedback is through
+// the logger where it sends what's happened, this allows me to
+// check something was sent to the logger, check TestListenAndServeFail
 type MockLogger struct {
 	Err string
 }

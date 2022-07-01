@@ -57,7 +57,7 @@ func Must(client *Client, err error) *Client {
 	return client
 }
 
-// The actual functions the core controller eecutes need to be clear
+// The actual functions the core controller excutes need to be clear
 // easy to read functions that can execute a task at the highest abstraction
 // level of the service, what this function does is simple to read and follow
 // allowing for a quick knowledge transfer
