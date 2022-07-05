@@ -10,37 +10,43 @@ import (
 
 var errMock = errors.New("mock error")
 
-type MockEmailClient struct {
-	Err bool //Whether to throw an error or not
-}
-
 // We dont provide param names here as we dont care about the input, only the output
 // and making sure it conforms to the interface
-func (mec *MockEmailClient) Send(context.Context, string, string, string) error {
-	if mec.Err {
-		return errMock
-	}
+type MockEmailClient struct {
+	SendMock func(context.Context, string, string, string) error
+}
 
-	return nil
+func (mec *MockEmailClient) Send(ctx context.Context, s1, s2, s3 string) error {
+	return mec.SendMock(ctx, s1, s2, s3)
 }
 
 type MockSMSClient struct {
-	Err bool
+	SendMock func(context.Context, string, string) error
 }
 
-func (msc *MockSMSClient) Send(context.Context, string, string) error {
-	if msc.Err {
-		return errMock
-	}
+func (mec *MockSMSClient) Send(ctx context.Context, s1, s2 string) error {
+	return mec.SendMock(ctx, s1, s2)
+}
 
-	return nil
+// Setting these globally as defaults
+var mockEmailClient core.EmailService = &MockEmailClient{
+	SendMock: func(context.Context, string, string, string) error {
+		return nil
+	},
+}
+
+var mockSMSClient core.SMSService = &MockSMSClient{
+	SendMock: func(ctx context.Context, s1, s2 string) error {
+		return nil
+	},
 }
 
 // Testing for clean init of the client
 func TestClient(t *testing.T) {
+
 	client, err := core.New(&core.ClientOptions{
-		Email: &MockEmailClient{},
-		SMS:   &MockSMSClient{},
+		Email: mockEmailClient,
+		SMS:   mockSMSClient,
 	})
 
 	if err != nil {
@@ -58,9 +64,15 @@ func TestClient(t *testing.T) {
 }
 
 func TestEmailErr(t *testing.T) {
+	mockEmailClient := &MockEmailClient{
+		SendMock: func(ctx context.Context, s1, s2, s3 string) error {
+			return errMock
+		},
+	}
+
 	client, err := core.New(&core.ClientOptions{
-		Email: &MockEmailClient{Err: true},
-		SMS:   &MockSMSClient{},
+		Email: mockEmailClient,
+		SMS:   mockSMSClient,
 	})
 
 	if err != nil {
@@ -78,9 +90,15 @@ func TestEmailErr(t *testing.T) {
 }
 
 func TestSMSErr(t *testing.T) {
+	mockSMSClient := &MockSMSClient{
+		SendMock: func(ctx context.Context, s1, s2 string) error {
+			return errMock
+		},
+	}
+
 	client, err := core.New(&core.ClientOptions{
-		Email: &MockEmailClient{},
-		SMS:   &MockSMSClient{Err: true},
+		Email: mockEmailClient,
+		SMS:   mockSMSClient,
 	})
 
 	if err != nil {
