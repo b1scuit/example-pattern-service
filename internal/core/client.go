@@ -4,6 +4,10 @@ import (
 	"context"
 )
 
+// These interfaces allow the decoupling and ease of unit testing.
+// Some developers prefer to break these off into seperate files/packages
+// but I prefer to keep these as close to where they are used as possible
+// so they remain paid to the client using them
 type EmailService interface {
 	Send(context.Context, string, string, string) error
 }
@@ -30,7 +34,7 @@ type Client struct {
 	sms   SMSService
 }
 
-// Siungle point of entry to create a new instance of client
+// Single point of entry to create a new instance of client
 // to a known good working order, the user can still just create
 // a client with &Client{} however there be dragons.
 func New(opts *ClientOptions) (*Client, error) {

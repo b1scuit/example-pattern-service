@@ -37,22 +37,25 @@ func (ml *MockLogger) GetError() error {
 	return errors.New(ml.Err)
 }
 
+// See internal/core/core_test.go for details around this method
 type MockCore struct {
-	Err bool
+	Task1Mock func(context.Context, *core.Task1Input) error
 }
 
-func (mc *MockCore) Task1(context.Context, *core.Task1Input) error {
-	if mc.Err {
-		return errMock
-	}
+func (mc *MockCore) Task1(ctx context.Context, in *core.Task1Input) error {
+	return mc.Task1Mock(ctx, in)
+}
 
-	return nil
+var mockCore = &MockCore{
+	Task1Mock: func(ctx context.Context, ti *core.Task1Input) error {
+		return nil
+	},
 }
 
 func TestNew(t *testing.T) {
 
 	client, err := http.New(&http.ClientOptions{
-		Core: &MockCore{},
+		Core: mockCore,
 	})
 	if err != nil {
 		t.Error(err)
@@ -69,7 +72,7 @@ func TestListenAndServeFail(t *testing.T) {
 	var log MockLogger
 
 	client, _ := http.New(&http.ClientOptions{
-		Core:   &MockCore{},
+		Core:   mockCore,
 		StdLog: &log,
 		HttpServer: &h.Server{
 			Addr: "999.999.999.999:1234567688",
@@ -82,7 +85,7 @@ func TestListenAndServeFail(t *testing.T) {
 		}
 	}()
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	client.ExposeHttpServer().Shutdown(ctx)
@@ -115,7 +118,7 @@ func TestMustClean(t *testing.T) {
 
 func TestServerRun(t *testing.T) {
 	client, err := http.New(&http.ClientOptions{
-		Core: &MockCore{},
+		Core: mockCore,
 	})
 	if err != nil {
 		t.Error(err)
@@ -131,7 +134,7 @@ func TestServerRun(t *testing.T) {
 
 func TestTaskHandler(t *testing.T) {
 	httpClient, err := http.New(&http.ClientOptions{
-		Core: &MockCore{},
+		Core: mockCore,
 	})
 	if err != nil {
 		t.Error(err)
@@ -154,8 +157,15 @@ func TestTaskHandler(t *testing.T) {
 
 }
 func TestTaskHandlerDecodeFail(t *testing.T) {
+
+	mockCoreClient := &MockCore{
+		Task1Mock: func(ctx context.Context, ti *core.Task1Input) error {
+			return errors.New("Example error")
+		},
+	}
+
 	httpClient, err := http.New(&http.ClientOptions{
-		Core: &MockCore{Err: true},
+		Core: mockCoreClient,
 	})
 	if err != nil {
 		t.Error(err)
@@ -178,8 +188,14 @@ func TestTaskHandlerDecodeFail(t *testing.T) {
 }
 
 func TestTaskHandlerFail(t *testing.T) {
+	mockCoreClient := &MockCore{
+		Task1Mock: func(ctx context.Context, ti *core.Task1Input) error {
+			return errors.New("Example error")
+		},
+	}
+
 	httpClient, err := http.New(&http.ClientOptions{
-		Core: &MockCore{Err: true},
+		Core: mockCoreClient,
 	})
 	if err != nil {
 		t.Error(err)

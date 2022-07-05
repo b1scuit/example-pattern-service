@@ -8,10 +8,10 @@ import (
 	"github.com/B1scuit/example-pattern-service/internal/core"
 )
 
-var errMock = errors.New("mock error")
-
-// We dont provide param names here as we dont care about the input, only the output
-// and making sure it conforms to the interface
+// We create a mock client that conformes to the interface we are expecting
+// however we hold the function to be executed as a field ans simply call it
+// This allow us to really control what the function returns as part of the unit
+// tests, this also has the side effect of the unit test being more easily understood.
 type MockEmailClient struct {
 	SendMock func(context.Context, string, string, string) error
 }
@@ -20,6 +20,7 @@ func (mec *MockEmailClient) Send(ctx context.Context, s1, s2, s3 string) error {
 	return mec.SendMock(ctx, s1, s2, s3)
 }
 
+// A similer mock created for the SMS client interface
 type MockSMSClient struct {
 	SendMock func(context.Context, string, string) error
 }
@@ -28,7 +29,11 @@ func (mec *MockSMSClient) Send(ctx context.Context, s1, s2 string) error {
 	return mec.SendMock(ctx, s1, s2)
 }
 
-// Setting these globally as defaults
+// We create some "best case" defaults since in most tests that's what
+// we'll be using, we create some defaults with the expected ideal behaviour
+// and then change away from this behaviour in the unit tests towards what
+// we are trying to test, this leaves the unit test more ideally understood
+// and consise from a testing pespective
 var mockEmailClient core.EmailService = &MockEmailClient{
 	SendMock: func(context.Context, string, string, string) error {
 		return nil
@@ -66,7 +71,7 @@ func TestClient(t *testing.T) {
 func TestEmailErr(t *testing.T) {
 	mockEmailClient := &MockEmailClient{
 		SendMock: func(ctx context.Context, s1, s2, s3 string) error {
-			return errMock
+			return errors.New("Example Error")
 		},
 	}
 
@@ -90,9 +95,14 @@ func TestEmailErr(t *testing.T) {
 }
 
 func TestSMSErr(t *testing.T) {
+	// An example of moving away from the ideal execution path
+	// this specifically triggers an error to test error handling
+	//
+	// Note: using := here created a new variable mockSMSClient scoped to this function
+	// it does not override the global best case
 	mockSMSClient := &MockSMSClient{
 		SendMock: func(ctx context.Context, s1, s2 string) error {
-			return errMock
+			return errors.New("Example error")
 		},
 	}
 
@@ -117,7 +127,7 @@ func TestSMSErr(t *testing.T) {
 
 func TestMustClean(t *testing.T) {
 	// This deferal function allows for the testing
-	//of panics as it blocks the os.Exit using recover()
+	// of panics as it blocks the os.Exit using recover()
 	defer func() {
 		if r := recover(); r != nil {
 			t.Error(r)
@@ -129,12 +139,12 @@ func TestMustClean(t *testing.T) {
 
 func TestMustPanic(t *testing.T) {
 	// This deferal function allows for the testing
-	//of panics as it blocks the os.Exit using recover()
+	// of panics as it blocks the os.Exit using recover()
 	defer func() {
 		if r := recover(); r == nil {
 			t.Error("panic should have thrown")
 		}
 	}()
 
-	core.Must(&core.Client{}, errMock)
+	core.Must(&core.Client{}, errors.New("Example"))
 }
